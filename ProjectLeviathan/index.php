@@ -17,7 +17,7 @@
                     <div class="header">
                         <div class="header-left">
                             <div class="header-item">
-                                <div class="header-button">
+                                <div class="header-button" data-action="toggleModuleSurface">
                                     <span class="material-symbols-rounded">menu</span>
                                 </div>
                             </div>
@@ -33,7 +33,7 @@
                 </div>
                 <div class="general-content-bottom">
                     <div class="general-content-scrolleable">
-                        <div class="module-content module-surface body-title disabled">
+                        <div class="module-content module-surface body-title disabled" data-module="moduleSurface">
                             <div class="menu-content">
                                 <div class="menu-list">
                                     <div class="menu-link">
