@@ -1,0 +1,209 @@
+/* ====================================== */
+/* ============= IMPORTS ================ */
+/* ====================================== */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+/* ====================================== */
+/* ===== GLOBAL RESET & BASE STYLES ===== */
+/* ====================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+/* ====================================== */
+/* ============ TYPOGRAPHY ============== */
+/* ====================================== */
+.body-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    letter-spacing: 0.0178571429em;
+    color: #000000;
+}
+
+/* ====================================== */
+/* ========== LAYOUT COMPONENTS ======== */
+/* ====================================== */
+.page-wrapper {
+    width: 100%;
+    height: 100%;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    padding: 12px;
+    gap: 8px;
+    background-color: #f5f5fa;
+}
+
+/* ====================================== */
+/* ========== GENERAL CONTENT =========== */
+/* ====================================== */
+.general-content {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    border: 1px solid #00000020;
+    border-radius: 12px;
+    background-color: #ffffff;
+}
+
+.general-content-top {
+    width: 100%;
+    height: auto;
+    border-bottom: 1px solid #00000020;
+    z-index: 999;
+}
+
+.general-content-bottom {
+    position: relative;
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.general-content-scrolleable {
+    width: 100%;
+    height: 100%;
+}
+
+.header {
+    align-items: center;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    display: flex;
+    gap: 8px;
+    height: auto;
+    justify-content: space-between;
+    padding: 8px;
+    position: relative;
+    width: 100%;
+}
+
+.header-left,
+.header-right {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+.header-right {
+    position: relative;
+    z-index: 1;
+}
+
+.header-item {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    height: 100%;
+    width: auto;
+}
+
+.header-button {
+    align-items: center;
+    background-color: transparent;
+    border: 1px solid #00000020;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex: 0 0 auto;
+    height: 40px;
+    justify-content: center;
+    outline: none;
+    user-select: none;
+    width: 40px;
+}
+
+.header-button:hover {
+    background-color: #f5f5fa;
+}
+
+.module-content.module-surface {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: 100%;
+    padding: 8px;
+    z-index: 999;
+}
+
+.module-surface .menu-content {
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px;
+    width: 285px;
+    height: 100%;
+    box-shadow: 0 4px 12px #00000020;
+    padding: 8px;
+    gap: 8px;
+    background-color: #ffffff;
+}.menu-list {
+    display: flex
+;
+    flex-direction: column;
+    gap: 4px;
+    height: auto;
+    user-select: none;
+    width: 100%;
+}.menu-link {
+    border-radius: 8px;
+    color: #000000;
+    cursor: pointer;
+    display: flex
+;
+    flex-direction: row;
+    height: 40px;
+    position: relative;
+    width: 100%}
+
+    .menu-link-icon {
+    align-items: center;
+    display: flex
+;
+    flex-shrink: 0;
+    height: 100%;
+    justify-content: center;
+    width: 45px;
+}.menu-link-text {
+    align-self: center;
+    display: block;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-align: start;
+}
+
+.menu-link:hover {
+    background-color: #f5f5fa;
+}
+
+.body-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.0178571429em;
+    color: #000000;
+}
+
+.disabled {
+    display: none;
+}
+
+.active {
+    display: flex;
+}
