@@ -1,0 +1,517 @@
+-- Creación de la base de datos
+CREATE DATABASE IF NOT EXISTS `project_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `project_db`;
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `users`
+-- Guarda la información principal de cada cuenta de usuario.
+--
+CREATE TABLE `users` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(36) NOT NULL,
+  `username` varchar(25) NOT NULL,
+  `email` varchar(126) NOT NULL,
+  `phone_number` varchar(20) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role` enum('user','vip','premium','elite','moderator','community-manager','admin','owner') NOT NULL DEFAULT 'user',
+  `status` enum('active','inactive','suspended','banned','deleted') NOT NULL DEFAULT 'active',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `security_logs`
+--
+CREATE TABLE `security_logs` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_identifier` varchar(126) NOT NULL COMMENT 'Email o identificador del usuario',
+  `ip_address` varchar(45) NOT NULL COMMENT 'Dirección IP del usuario',
+  `attempt_type` enum('login','password_reset','resend_code') NOT NULL COMMENT 'Tipo de intento',
+  `attempts` int(11) NOT NULL DEFAULT 1 COMMENT 'Intentos fallidos consecutivos',
+  `total_failures` int(11) NOT NULL DEFAULT 1 COMMENT 'Total de fallos históricos',
+  `last_attempt_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Último intento registrado',
+  `blocked_until` datetime DEFAULT NULL COMMENT 'Bloqueado hasta esta fecha/hora',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY
+
+
+KEY (`id`),
+  KEY `user_identifier` (`user_identifier`),
+  KEY `ip_address` (`ip_address`),
+  KEY `attempt_type` (`attempt_type`),
+  KEY `blocked_until` (`blocked_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Índice compuesto para optimizar las consultas más comunes
+CREATE INDEX `idx_security_lookup` ON `security_logs` (`user_identifier`, `ip_address`, `attempt_type`);
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `user_preferences`
+-- Almacena todas las configuraciones de personalización del usuario.
+--
+CREATE TABLE `user_preferences` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) UNSIGNED NOT NULL,
+  `language` enum('es-MX','en-US') NOT NULL DEFAULT 'en-US',
+  `usage_type` enum('personal','commercial','educational') NOT NULL DEFAULT 'personal',
+  `open_links_in_new_tab` TINYINT(1) NOT NULL DEFAULT 1,
+  `show_sensitive_content` TINYINT(1) NOT NULL DEFAULT 0,
+  `theme` enum('system','light','dark') NOT NULL DEFAULT 'system',
+  `shortcuts_need_modifier` TINYINT(1) NOT NULL DEFAULT 0,
+  `high_contrast_colors` TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_id` (`user_id`),
+  CONSTRAINT `user_preferences_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `user_update_history`
+-- Registra cambios importantes en la cuenta, como actualizaciones de perfil y contraseña.
+--
+CREATE TABLE `user_update_history` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) UNSIGNED NOT NULL,
+  `field_changed` varchar(50) NOT NULL,
+  `old_value` text DEFAULT NULL,
+  `new_value` text DEFAULT NULL,
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `user_update_history_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `users_metadata`
+-- Almacena metadatos asociados a la creación de la cuenta, como la IP y el User-Agent.
+--
+CREATE TABLE `users_metadata` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) UNSIGNED NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `user_agent` text NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `users_metadata_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `verification_codes`
+-- Gestiona los códigos de un solo uso para la verificación de cuentas y el reseteo de contraseñas.
+--
+CREATE TABLE `verification_codes` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_email` varchar(126) NOT NULL,
+  `phone_number` varchar(20) NOT NULL,
+  `code` varchar(14) NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `type` enum('account_verification','password_reset') NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `user_email` (`user_email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `group_municipality`
+-- Almacena los grupos basados en los municipios de Tamaulipas.
+--
+CREATE TABLE `group_municipality` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(36) NOT NULL,
+  `group_title` varchar(255) NOT NULL,
+  `privacy` enum('public','private') NOT NULL DEFAULT 'public',
+  `members` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `access_code` varchar(14) DEFAULT NULL COMMENT 'Código de acceso para grupos privados',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `group_members`
+-- Almacena la relación entre usuarios y grupos.
+--
+CREATE TABLE `group_members` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) UNSIGNED NOT NULL,
+  `group_uuid` varchar(36) NOT NULL COMMENT 'UUID del grupo (municipality o university)',
+  `group_type` enum('municipality','university') NOT NULL COMMENT 'Tipo de grupo al que pertenece',
+  `joined_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_group_unique` (`user_id`,`group_uuid`,`group_type`),
+  KEY `user_id` (`user_id`),
+  KEY `group_uuid` (`group_uuid`),
+  CONSTRAINT `group_members_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+--
+-- Volcado de datos para la tabla `group_municipality`
+--
+INSERT INTO `group_municipality` (`uuid`, `group_title`, `privacy`, `members`, `access_code`) VALUES
+(UUID(), 'Abasolo', 'public', 0, 'ABSL-T4M5-2024'),
+(UUID(), 'Aldama', 'public', 0, 'ALDA-M4T5-2024'),
+(UUID(), 'Altamira', 'private', 0, 'ALTA-MIRA-2024'),
+(UUID(), 'Antiguo Morelos', 'public', 0, 'ANTG-M0R3-2024'),
+(UUID(), 'Burgos', 'public', 0, 'BURG-05T4-2024'),
+(UUID(), 'Bustamante', 'public', 0, 'BUST-4M4-2024'),
+(UUID(), 'Camargo', 'public', 0, 'CAMR-G0T4-2024'),
+(UUID(), 'Casas', 'public', 0, 'C4S4-5T4M-2024'),
+(UUID(), 'Cruillas', 'public', 0, 'CRU1-LL45-2024'),
+(UUID(), 'Güémez', 'public', 0, 'GU3M-3ZT4-2024'),
+(UUID(), 'Gómez Farías', 'public', 0, 'G0M3-ZF4R-2024'),
+(UUID(), 'González', 'public', 0, 'G0NZ-4L3Z-2024'),
+(UUID(), 'Guerrero', 'public', 0, 'GU3R-R3R0-2024'),
+(UUID(), 'Gustavo Díaz Ordaz', 'public', 0, 'DIAZ-0RD4-2024'),
+(UUID(), 'Hidalgo', 'public', 0, 'H1D4-LG0T-2024'),
+(UUID(), 'Jaumave', 'public', 0, 'J4UM-4V3T-2024'),
+(UUID(), 'Jiménez', 'public', 0, 'J1M3-N3ZT-2024'),
+(UUID(), 'Llera', 'public', 0, 'LL3R-4T4M-2024'),
+(UUID(), 'Madero', 'public', 0, 'M4D3-R0T4-2024'),
+(UUID(), 'Mainero', 'public', 0, 'M41N-3R0T-2024'),
+(UUID(),
+
+'Mante', 'public', 0, 'M4NT-3T4M-2024'),
+(UUID(), 'Matamoros', 'public', 0, 'M4T4-M0R0-2024'),
+(UUID(), 'Méndez', 'public', 0, 'M3ND-3ZT4-2024'),
+(UUID(), 'Mier', 'public', 0, 'M13R-T4M5-2024'),
+(UUID(), 'Miguel Alemán', 'public', 0, 'M1GU-3L4L-2024'),
+(UUID(), 'Miquihuana', 'public', 0, 'M1QU-1HU4-2024'),
+(UUID(), 'Nuevo Laredo', 'public', 0, 'NV0L-4R3D-2024'),
+(UUID(), 'Nuevo Morelos', 'public', 0, 'NV0M-0R3L-2024'),
+(UUID(), 'Ocampo', 'public', 0, '0C4M-P0T4-2024'),
+(UUID(), 'Padilla', 'private', 0, 'PADI-LLA-2024'),
+(UUID(), 'Palmillas', 'public', 0, 'P4LM-1LL4-2024'),
+(UUID(), 'Reynosa', 'public', 0, 'R3YN-054T-2024'),
+(UUID(), 'Río Bravo', 'public', 0, 'R10B-R4V0-2024'),
+(UUID(), 'San Carlos', 'public', 0, '54NC-4RL0-2024'),
+(UUID(), 'San Fernando', 'public', 0, '54NF-3RN4-2024'),
+(UUID(), 'San Nicolás', 'public', 0, '54NN-1C0L-2024'),
+(UUID(), 'Soto la Marina', 'public', 0, 'S0T0-L4M4-2024'),
+(UUID(), 'Tampico', 'public', 0, 'T4MP-1C0T-2024'),
+(UUID(), 'Tula', 'public', 0, 'TUL4-T4M5-2024'),
+(UUID(), 'Valle Hermoso', 'public', 0, 'V4LL-3H3R-2024'),
+(UUID(), 'Victoria', 'public', 0, 'V1CT-0R14-2024'),
+(UUID(), 'Villagrán', 'public', 0, 'V1LL-4GR4-2024'),
+(UUID(), 'Xicoténcatl', 'public',
+
+0, 'X1C0-T3NC-2024');
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `group_university`
+-- Almacena los grupos basados en las universidades de Tamaulipas.
+--
+CREATE TABLE `group_university` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(36) NOT NULL,
+  `group_title` varchar(255) NOT NULL,
+  `privacy` enum('public','private') NOT NULL DEFAULT 'public',
+  `members` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `access_code` varchar(14) DEFAULT NULL,
+  `municipality_id` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uuid` (`uuid`),
+  KEY `municipality_id` (`municipality_id`),
+  CONSTRAINT `group_university_ibfk_1` FOREIGN KEY (`municipality_id`) REFERENCES `group_municipality` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+--
+-- Volcado de datos para la tabla `group_university`
+--
+INSERT INTO `group_university` (`uuid`, `group_title`, `municipality_id`) VALUES
+-- Aldama
+(UUID(), 'Universidad del Atlántico, Campus Aldama', (SELECT id FROM group_municipality WHERE group_title = 'Aldama')),
+(UUID(), 'Universidad para el Bienestar Benito Juárez García, sede Aldama', (SELECT id FROM group_municipality WHERE group_title = 'Aldama')),
+-- Altamira
+(UUID(), 'Universidad del Atlántico, Campus Batería 7', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+(UUID(), 'Universidad Tecnológica de Altamira', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+(UUID(), 'Instituto Tecnológico de Altamira', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+(UUID(), 'Universidad del Atlántico, Campus Altamira', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+(UUID(), 'Universidad del Desarrollo
+
+Profesional (UNIDEP), plantel Altamira', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+(UUID(), 'Instituto de Estudios Superiores de Tamaulipas (IEST)', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+(UUID(), 'Centro de Investigación en Ciencia Aplicada y Tecnología Avanzada (CICATA), Unidad Altamira', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+(UUID(), 'Tecnológico de Monterrey, Campus Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Altamira')),
+-- Madero
+(UUID(), 'Universidad Pedagógica Nacional (UPN) 282 Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Madero')),
+(UUID(), 'Instituto Tecnológico de Cd.
+Madero', (SELECT id FROM group_municipality WHERE group_title = 'Madero')),
+(UUID(), 'Centro de Investigación y Entrenamiento en Psicoterapia Gestalt Fritz Perls, Sede Madero', (SELECT id FROM group_municipality WHERE group_title = 'Madero')),
+(UUID(), 'Escuela Normal Superior de Ciudad Madero (ENSCD)', (SELECT id FROM group_municipality WHERE group_title = 'Madero')),
+(UUID(), 'Universidad Regional Miguel Hidalgo', (SELECT id FROM group_municipality WHERE group_title = 'Madero')),
+(UUID(), 'Universidad del Golfo, Campus Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Madero')),
+-- Güémez
+(UUID(), 'Escuela Normal Rural de Tamaulipas Mtro. Lauro Aguirre', (SELECT id FROM group_municipality WHERE group_title = 'Güémez')),
+-- Gustavo Díaz Ordaz
+(UUID(), 'Universidad del Atlántico, Campus Díaz Ordaz', (SELECT id FROM group_municipality WHERE
+
+group_title = 'Gustavo Díaz Ordaz')),
+-- Hidalgo
+(UUID(), 'Universidad para el Bienestar Benito Juárez García, sede Hidalgo', (SELECT id FROM group_municipality WHERE group_title = 'Hidalgo')),
+-- Jaumave
+(UUID(), 'Escuela Normal Profr.
+y Gral. Alberto Carrera Torres', (SELECT id FROM group_municipality WHERE group_title = 'Jaumave')),
+-- Mante
+(UUID(), 'Centro de Estudios Tecnológicos Iberoamericana Mante', (SELECT id FROM group_municipality WHERE group_title = 'Mante')),
+(UUID(), 'Instituto Tecnológico Superior de El Mante', (SELECT id FROM group_municipality WHERE group_title = 'Mante')),
+(UUID(), 'Universidad de Desarrollo Profesional (UNIDEP), plantel Cd. Mante', (SELECT id FROM group_municipality WHERE group_title = 'Mante')),
+(UUID(), 'Instituto Mantense de Estudios Profesionales (IMEP)', (SELECT id FROM group_municipality WHERE group_title = 'Mante')),
+-- Matamoros
+(UUID(), 'Escuela Normal Lic. J. Guadalupe Mainero', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad del Noreste de México, Unidad Matamoros', (SELECT id FROM group_municipality WHERE group_title
+
+= 'Matamoros')),
+(UUID(), 'Universidad Tecnológica de Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Unidad Académica Multidisciplinaria Matamoros (UAMM)', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Facultad de Medicina e Ingeniería en Sistemas Computacionales Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad Americana del Noreste, Campus Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Instituto Odontológico de Matamoros (IOM)', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Liceo Profesional de Comercio y Administración', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Centro Universitario del Noreste (CUN)', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad de
+
+Ingenierías y Ciencias del Noreste (ICN)', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad del Atlántico, Campus Lauro Villar', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad del Atlántico, Campus Laguneta', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad de Integración Humanista', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad Tamaulipeca, Campus Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad de Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad Americana del Noreste (UANE), Campus Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad del Atlántico, Campus Pedro Cárdenas', (SELECT id FROM
+
+group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Instituto Tecnológico de Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+(UUID(), 'Universidad Pedagógica Nacional (UPN) 283 Matamoros', (SELECT id FROM group_municipality WHERE group_title = 'Matamoros')),
+-- Miguel Alemán
+(UUID(), 'Universidad Miguel Alemán, Campus Miguel Alemán', (SELECT id FROM group_municipality WHERE group_title = 'Miguel Alemán')),
+(UUID(), 'Universidad del Atlántico, Campus Miguel Alemán', (SELECT id FROM group_municipality WHERE group_title = 'Miguel Alemán')),
+(UUID(), 'Universidad Politécnica de la Región Ribereña (UPRR)', (SELECT id FROM group_municipality WHERE group_title = 'Miguel Alemán')),
+-- Nuevo Laredo
+(UUID(), 'Universidad Panamericana de Nuevo Laredo', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Universidad del Valle de México,
+
+Campus Nuevo Laredo', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Escuela Normal Urbana Cuauhtémoc', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Centro de Actualización del Magisterio, Nuevo Laredo', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Universidad TecMilenio, campus Nuevo Laredo', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Universidad México Americana del Norte (UMAN), Campus Nuevo Laredo', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Universidad Tecnológica de Nuevo Laredo', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Universidad Panamericana de Nuevo Laredo, Facultad de Medicina', (SELECT id FROM group_municipality WHERE
+
+group_title = 'Nuevo Laredo')),
+(UUID(), 'Universidad Pedagógica Nacional (UPN) 284 Nuevo Laredo', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Facultad de Comercio, Administración y Ciencias Sociales', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+(UUID(), 'Instituto Tecnológico de Nuevo Laredo (ITNLaredo)', (SELECT id FROM group_municipality WHERE group_title = 'Nuevo Laredo')),
+-- Reynosa
+(UUID(), 'Universidad del Golfo, Campus Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad México Americana del Norte (UMAN), Unidad Círculo', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Instituto Internacional de Estudios Superiores (IIES), Campus Unidad Círculo', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad México
+
+Americana del Norte (UMAN), Unidad Centro Allende', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Centro de Educación Continua (CEC), Unidad Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Centro de Biotecnología Genómica (CBG)', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad Americana del Noreste (UANE), Campus Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Instituto Tecnológico de Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Instituto Internacional de Estudios Superiores (IIES), Campus Vista Hermosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Centro de Estudios Universitarios Cualti, Campus Reynosa', (SELECT id FROM group_municipality WHERE group_title
+
+= 'Reynosa')),
+(UUID(), 'Universidad del Atlántico, Campus Benito Juárez', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad del Atlántico, Campus Jarachina Sur', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad del Atlántico, Campus Ribereña', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad del Atlántico, Campus Virreyes', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Unidad Académica Multidisciplinaria Reynosa-Rhode (UAMRR)', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad Tamaulipeca, Campus Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Escuela Normal de Educadoras Bertha Von Glumer', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad Interamericana del Norte
+
+(UIN), Campus Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Unidad Académica Multidisciplinaria Reynosa-Aztlán (UAMRA)', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Instituto de Estudios Superiores (ISIMA), Plantel Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad TecMilenio, campus Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad Miguel Alemán Campus Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'UVM Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad Pedagógica Nacional (UPN) 285 Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad del Atlántico, Campus Bellavista', (SELECT id FROM group_municipality WHERE group_title =
+
+'Reynosa')),
+(UUID(), 'Universidad Tecnológica de Tamaulipas Norte', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad México Americana del Norte (UMAN), Unidad Médica', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad México Americana del Norte (UMAN), Campus Reynosa', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+(UUID(), 'Universidad México Americana del Norte (UMAN), Unidad Michoacán', (SELECT id FROM group_municipality WHERE group_title = 'Reynosa')),
+-- Río Bravo
+(UUID(), 'Universidad del Atlántico, Campus Río Bravo', (SELECT id FROM group_municipality WHERE group_title = 'Río Bravo')),
+(UUID(), 'Universidad del Noreste de México, Unidad Río Bravo', (SELECT id FROM group_municipality WHERE group_title = 'Río Bravo')),
+(UUID(), 'Universidad Tamaulipeca, Campus Río
+
+Bravo', (SELECT id FROM group_municipality WHERE group_title = 'Río Bravo')),
+-- San Fernando
+(UUID(), 'Universidad del Bienestar Benito Juárez García, sede San Fernando', (SELECT id FROM group_municipality WHERE group_title = 'San Fernando')),
+(UUID(), 'Universidad del Atlántico, Campus San Fernando', (SELECT id FROM group_municipality WHERE group_title = 'San Fernando')),
+-- Soto la Marina
+(UUID(), 'Universidad Tecnológica del Mar de Tamaulipas Bicentenario', (SELECT id FROM group_municipality WHERE group_title = 'Soto la Marina')),
+-- Tampico
+(UUID(), 'Instituto Tecnológico de la Construcción (ITC), Delegación Tamaulipas', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad del Noreste (UNE)', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad Interamericana para el Desarrollo (UNID),
+
+Campus Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad Von Humboldt', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Centro Educacional y Desarrollo en informática Personal (CEDIP)', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad del Valle de México (UVM), Campus Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Instituto de Ciencias y Estudios Superiores de Tamaulipas (ICEST)', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad Multicultural Internacional', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Escuela de Trabajo Social Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad Interamericana del Norte (UIN), Campus
+
+Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Escuela Náutica Mercante de Tampico Cap. Alt.
+Luis Gonzaga Priego González (ENMT)', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad del Atlántico, Campus Tampico 1', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Centro de Estudios Universitarios Cualti, Campus Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Instituto de Estudios Superiores (ISIMA), Plantel Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Primera Escuela de Tráfico y Tramitación Aduanal, Campus Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Centro de Educación Continua (CEC), Unidad Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Escuela Normal Superior del Sur de Tamaulipas (ENSST)', (SELECT id FROM
+
+group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad del Atlántico, Campus Tampico 2', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Universidad de Relaciones y Estudios Internacionales', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Escuela Normal Anglo de Tampico', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Centro Universitario Tampico-Ciudad Madero', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+(UUID(), 'Instituto de Tramitación Aduanal del Norte', (SELECT id FROM group_municipality WHERE group_title = 'Tampico')),
+-- Tula
+(UUID(), 'Universidad para el Bienestar Benito Juárez García, sede Tula', (SELECT id FROM group_municipality WHERE group_title = 'Tula')),
+-- Valle Hermoso
+(UUID(), 'Universidad de Ingenierías y Ciencias del Noreste (ICN),
+
+Campus Valle Hermoso', (SELECT id FROM group_municipality WHERE group_title = 'Valle Hermoso')),
+(UUID(), 'Universidad del Atlántico, Campus Juárez', (SELECT id FROM group_municipality WHERE group_title = 'Valle Hermoso')),
+(UUID(), 'Universidad del Atlántico, Campus Zaragoza', (SELECT id FROM group_municipality WHERE group_title = 'Valle Hermoso')),
+(UUID(), 'Universidad del Noreste de México, Unidad Valle Hermoso', (SELECT id FROM group_municipality WHERE group_title = 'Valle Hermoso')),
+-- Victoria
+(UUID(), 'Instituto Mexicano de Estudios Pedagógicos (IMEP), Sede Tamaulipas', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad del Valle de México (UVM), Campus Ciudad Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Centro de Rehabilitación y Educación Especial (CREE)', (SELECT id
+
+FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Benemérita Escuela Normal Federalizada de Tamaulipas (BENFT)', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad Internacional de América', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad Vizcaya de las Américas, campus Cd.
+Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad Internacional de América (UNIDA)', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Centro de Actualización del Magisterio, Ciudad Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad Pedagógica Nacional (UPN) Unidad 281 Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad Politécnica de Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Centro de Investigación y Entrenamiento en Psicoterapia Gestalt Fritz Perls, Sede Cd. Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad Autónoma de Tamaulipas (UAT)', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Universidad La
+
+Salle Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Centro de Investigación y de Estudios Avanzados (CINVESTAV), Unidad Tamaulipas', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Instituto Tecnológico de Cd.
+Victoria', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Escuela Normal Federal de Educadoras Maestra Estefanía Castañeda', (SELECT id FROM group_municipality WHERE group_title = 'Victoria')),
+(UUID(), 'Escuela Normal Superior de Tamaulipas (ENST)', (SELECT id FROM group_municipality WHERE group_title = 'Victoria'));
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `group_messages`
+-- Almacena los mensajes de los chats de grupo.
+--
+CREATE TABLE `group_messages` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `group_uuid` varchar(36) NOT NULL,
+  `user_id` int(11) UNSIGNED NOT NULL,
+  `message_text` text NOT NULL,
+  `reply_to_message_id` int(11) UNSIGNED DEFAULT NULL,
+  `image_url` varchar(255) DEFAULT NULL,
+  `sent_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `group_uuid` (`group_uuid`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `group_messages_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+--
+-- Estructura de la tabla `websocket_auth_tokens`
+-- Almacena tokens de un solo uso para autenticar conexiones WebSocket.
+--
+CREATE TABLE `websocket_auth_tokens` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) UNSIGNED NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token` (`token`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `websocket_auth_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Agrega esta línea al final del volcado de datos de `group_messages`
+-- para añadir la nueva tabla de spam_logs necesaria para el server.py
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `chat_spam_logs`
+--
+CREATE TABLE `chat_spam_logs` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) UNSIGNED NOT NULL,
+  `group_uuid` varchar(36) NOT NULL,
+  `last_message_content` text DEFAULT NULL,
+  `message_rate` float DEFAULT NULL,
+  `blocked_until` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- --------------------------------------------------------
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de la tabla `message_reports`
+--
+CREATE TABLE `message_reports` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `message_id` int(11) UNSIGNED NOT NULL,
+  `group_uuid` varchar(36) NOT NULL,
+  `reported_user_id` int(11) UNSIGNED NOT NULL,
+  `reporter_user_id` int(11) UNSIGNED NOT NULL,
+  `reported_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending','reviewed','resolved','dismissed') NOT NULL DEFAULT 'pending',
+  `image_reported` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `message_id` (`message_id`),
+  KEY `reported_user_id` (`reported_user_id`),
+  KEY `reporter_user_id` (`reporter_user_id`),
+  CONSTRAINT `message_reports_ibfk_1` FOREIGN KEY (`message_id`) REFERENCES `group_messages` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `message_reports_ibfk_2` FOREIGN KEY (`reported_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `message_reports_ibfk_3` FOREIGN KEY (`reporter_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+pip install websockets
+pip install mysql-connector-python
+pip install python-dotenv
+
+
+https://sic.cultura.gob.mx/lista.php?table=universidad&disciplina=&estado_id=28
+
+
+cd "E:\xampp\htdocs\ProjectLeviathan - Project\ProjectLeviathan - Backend\websocket"
+
+
+python server.py
